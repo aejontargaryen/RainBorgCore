@@ -1,0 +1,611 @@
+﻿using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace RainBorg
+{
+    partial class RainBorg
+    {
+        // Initialization
+        static void Main(string[] args)
+        {
+            // Vanity
+            Console.WriteLine(Banner);
+
+            // Create exit handler
+            handler = new ConsoleEventDelegate(ConsoleEventCallback);
+            SetConsoleCtrlHandler(handler, true);
+
+            // Run bot
+            Start();
+        }
+
+        // Main loop
+        public static Task Start()
+        {
+            // Begin bot process in its own thread
+            new Thread(delegate ()
+            {
+                new RainBorg().RunBotAsync().GetAwaiter().GetResult();
+            }).Start();
+
+            // Begin timeout loop in its own thread
+            new Thread(delegate ()
+            {
+                UserTimeout();
+            }).Start();
+
+            // Get console commands
+            string command = "";
+            while (command.ToLower() != "exit")
+            {
+                // Get command
+                command = Console.ReadLine();
+
+                if (command.ToLower().StartsWith("dotip"))
+                {
+                    Waiting = waitTime;
+                    Console.WriteLine("Tip sent.");
+                }
+                else if (command.ToLower().StartsWith("reset"))
+                {
+                    foreach (KeyValuePair<ulong, List<ulong>> Entry in UserPools)
+                        Entry.Value.Clear();
+                    Greylist.Clear();
+                    Console.WriteLine("Pools reset.");
+                }
+                else if (command.ToLower().StartsWith("loglevel"))
+                {
+                    logLevel = int.Parse(command.Substring(command.IndexOf(' ')));
+                    Config.Save();
+                    Console.WriteLine("Log level changed.");
+                }
+                else if (command.ToLower().StartsWith("say"))
+                {
+                    foreach (ulong Channel in StatusChannel)
+                        (_client.GetChannel(Channel) as SocketTextChannel).SendMessageAsync(command.Substring(command.IndexOf(' ')));
+                    Console.WriteLine("Sent message.");
+                }
+                else if (command.ToLower().StartsWith("addoperator"))
+                {
+                    if (!Operators.ContainsKey(ulong.Parse(command.Substring(command.IndexOf(' ')))))
+                        Operators.Add(ulong.Parse(command.Substring(command.IndexOf(' '))));
+                    Console.WriteLine("Added operator.");
+                }
+                else if (command.ToLower().StartsWith("removeoperator"))
+                {
+                    if (Operators.ContainsKey(ulong.Parse(command.Substring(command.IndexOf(' ')))))
+                        Operators.Remove(ulong.Parse(command.Substring(command.IndexOf(' '))));
+                    Console.WriteLine("Removed operator.");
+                }
+                else if (command.ToLower().StartsWith("test"))
+                {
+                    Stats.Tip(DateTime.Now, 1, 1, 1000000);
+                    Console.WriteLine("Added tip to database.");
+                }
+                else if (command.ToLower().StartsWith("restart"))
+                {
+                    Log("RainBorg", "Relaunching bot...");
+                    Paused = true;
+                    JObject Resuming = new JObject
+                    {
+                        ["userPools"] = JToken.FromObject(UserPools),
+                        ["greylist"] = JToken.FromObject(Greylist),
+                        ["userMessages"] = JToken.FromObject(UserMessages)
+                    };
+                    File.WriteAllText(resumeFile, Resuming.ToString());
+                    Process.Start("RelaunchUtility.exe", "RainBorg.exe");
+                    ConsoleEventCallback(2);
+                    Environment.Exit(0);
+                }
+            }
+
+            // Completed, exit bot
+            return Task.CompletedTask;
+        }
+
+        // Initiate bot
+        public async Task RunBotAsync()
+        {
+            // Populate API variables
+            _client = new DiscordSocketClient();
+            _commands = new CommandService();
+            _services = new ServiceCollection()
+                .AddSingleton(_client)
+                .AddSingleton(_commands)
+                .BuildServiceProvider();
+
+            // Add event handlers
+            _client.Log += Log;
+            _client.Ready += Ready;
+
+            // Load local files
+            Log("RainBorg", "Loading config");
+            await Config.Load();
+            Log("RainBorg", "Loading database");
+            Database.Load();
+
+            // Register commands and start bot
+            await RegisterCommandsAsync();
+            await _client.LoginAsync(TokenType.Bot, botToken);
+            await _client.StartAsync();
+
+            // Resume if told to
+            if (File.Exists(resumeFile))
+            {
+                Log("RainBorg", "Resuming bot...");
+                JObject Resuming = JObject.Parse(File.ReadAllText(resumeFile));
+                UserPools = Resuming["userPools"].ToObject<Dictionary<ulong, List<ulong>>>();
+                Greylist = Resuming["greylist"].ToObject<List<ulong>>();
+                UserMessages = Resuming["userMessages"].ToObject<Dictionary<ulong, UserMessage>>();
+                File.Delete(resumeFile);
+            }
+
+            // Start tip cycle
+            await DoTipAsync();
+
+            // Rest infinitely
+            await Task.Delay(-1);
+        }
+
+        // Ready event handler
+        private Task Ready()
+        {
+            // Show start up message in all tippable channels
+            if (Startup && entranceMessage != "")
+            {
+                _client.CurrentUser.ModifyAsync(m => { m.Username = _username; });
+                foreach(ulong ChannelId in UserPools.Keys)
+                    (_client.GetChannel(ChannelId) as SocketTextChannel).SendMessageAsync(entranceMessage);
+                Startup = false;
+            }
+
+            // Completed
+            return Task.CompletedTask;
+        }
+
+        // Log event handler
+        private Task Log(LogMessage arg)
+        {
+            // Write message to console
+            Console.WriteLine(arg);
+
+            // Relaunch if disconnected
+            if (arg.Message.Contains("Disconnected"))
+            {
+                Log("RainBorg", "Relaunching bot...");
+                Paused = true;
+                JObject Resuming = new JObject
+                {
+                    ["userPools"] = JToken.FromObject(UserPools),
+                    ["greylist"] = JToken.FromObject(Greylist),
+                    ["userMessages"] = JToken.FromObject(UserMessages)
+                };
+                File.WriteAllText(resumeFile, Resuming.ToString());
+                Process.Start("RelaunchUtility.exe", "RainBorg.exe");
+                ConsoleEventCallback(2);
+                Environment.Exit(0);
+            }
+
+            // Completed
+            return Task.CompletedTask;
+        }
+
+        // Register commands within API
+        private async Task RegisterCommandsAsync()
+        {
+            _client.MessageReceived += MessageReceivedAsync;
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly());
+        }
+
+        // Message received
+        private async Task MessageReceivedAsync(SocketMessage arg)
+        {
+            // Get message and create a context
+            var message = arg as SocketUserMessage;
+            if (message == null) return;
+            var context = new SocketCommandContext(_client, message);
+
+            // Check if channel is a tippable channel
+            if (UserPools.ContainsKey(message.Channel.Id) && !message.Author.IsBot)
+            {
+                // Check for spam
+                await CheckForSpamAsync(message, out bool IsSpam);
+                if (!IsSpam && !UserPools[message.Channel.Id].Contains(message.Author.Id))
+                {
+                    // Add user to tip pool
+                    UserPools[message.Channel.Id].Add(message.Author.Id);
+                    if (logLevel >= 1)
+                        Log("Tipper", "Adding {0} ({1}) to user pool on channel #{2}", message.Author.Username, message.Author.Id, message.Channel);
+                }
+
+                // Remove users from pool if pool exceeds the threshold
+                if (UserPools[message.Channel.Id].Count > userMax)
+                    UserPools[message.Channel.Id].RemoveAt(0);
+            }
+
+            // Check if message is a commmand
+            int argPos = 0;
+            if (message.HasStringPrefix(botPrefix, ref argPos) ||
+                message.HasMentionPrefix(_client.CurrentUser, ref argPos))
+            {
+                // Execute command and log errors to console
+                var result = await _commands.ExecuteAsync(context, argPos, _services);
+                if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
+            }
+        }
+
+        // Tip loop
+        public static async Task DoTipAsync()
+        {
+            Start:
+            // If client is connected
+            if (_client.ConnectionState == ConnectionState.Connected)
+            {
+                // Create a randomizer
+                Random r = new Random();
+
+                try
+                {
+                    // Get balance
+                    tipBalance = GetBalance();
+
+                    // Check tip balance against minimum tip
+                    if (tipBalance - tipFee < tipMin && tipBalance >= 0)
+                    {
+                        // Log low balance message
+                        Log("Tipper", "Balance does not meet minimum tip threshold.");
+
+                        // Check if bot should show a donation message
+                        if (ShowDonation)
+                        {
+                            // Create message
+                            var builder = new EmbedBuilder();
+                            builder.ImageUrl = DonationImages[r.Next(0, DonationImages.Count)];
+                            builder.WithTitle("UH OH");
+                            builder.WithColor(Color.Green);
+                            builder.Description = String.Format(tipBalanceError, String.Format("{0:n}", tipMin + tipFee - tipBalance));
+
+                            // Cast message to all status channels
+                            foreach (ulong u in StatusChannel)
+                                await (_client.GetChannel(u) as SocketTextChannel).SendMessageAsync("", false, builder);
+
+                            // Reset donation message
+                            ShowDonation = false;
+                        }
+                    }
+
+                    // Grab eligible channels
+                    List<ulong> Channels = EligibleChannels();
+
+                    // No eligible channels
+                    if (Channels.Count < 1) Log("Tipper", "No eligible tipping channels.");
+                    else
+                    {
+                        // Roll for a megatip
+                        if (r.NextDouble() * 100 <= megaTipChance)
+                        {
+                            // Do megatip
+                            await MegaTipAsync(megaTipAmount);
+                        }
+                        else
+                        {
+                            // Roll until an eligible channel is chosen
+                            ulong ChannelId = 0;
+                            while (!Channels.Contains(ChannelId))
+                                ChannelId = ChannelWeight[r.Next(0, ChannelWeight.Count)];
+
+                            // Check user count
+                            if (tipBalance - tipFee < tipMin && UserPools[ChannelId].Count < userMin)
+                                Log("Tipper", "Not enough users to meet threshold, will try again next tipping cycle.");
+
+                            // Do a tip cycle
+                            else if (tipBalance - tipFee >= tipMin && UserPools[ChannelId].Count >= userMin)
+                            {
+                                // Set tip amount
+                                if (tipBalance - tipFee > tipMax)
+                                    tipAmount = tipMax / UserPools[ChannelId].Count;
+                                else tipAmount = (tipBalance - tipFee) / UserPools[ChannelId].Count;
+
+                                // Round tip amount down
+                                tipAmount = Math.Floor(tipAmount * 100) / 100;
+
+                                // Begin creating tip message
+                                int userCount = 0;
+                                decimal tipTotal = 0;
+                                DateTime tipTime = DateTime.Now;
+                                Log("Tipper", "Sending tip of {0} to {1} users in channel #{2}", tipAmount.ToString("F"),
+                                    UserPools[ChannelId].Count, _client.GetChannel(ChannelId));
+                                string m = ".tip " + tipAmount.ToString("F") + " ";
+
+                                // Loop through user pool and add them to tip
+                                for (int i = 0; i < UserPools[ChannelId].Count; i++)
+                                {
+                                    try
+                                    {
+                                        // Make sure the message size is below the max discord message size
+                                        if ((m + _client.GetUser(UserPools[ChannelId][i]).Mention + " ").Length <= 2000)
+                                        {
+                                            // Add a username mention
+                                            m += _client.GetUser(UserPools[ChannelId][i]).Mention + " ";
+
+                                            // Increment user count
+                                            userCount++;
+
+                                            // Add to tip total
+                                            tipTotal += tipAmount;
+
+                                            // Add tip to stats
+                                            try
+                                            {
+                                                await Stats.Tip(tipTime, ChannelId, UserPools[ChannelId][i], tipAmount);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Console.WriteLine("Error adding tip to stat sheet: " + e.Message);
+                                            }
+                                        }
+                                    }
+                                    catch { }
+                                }
+
+                                // Send tip message to channel
+                                await (_client.GetChannel(ChannelId) as SocketTextChannel).SendMessageAsync(m);
+                                //await PostLink(ChannelId);
+
+                                // Begin building status message
+                                var builder = new EmbedBuilder();
+                                builder.WithTitle("TUT TUT");
+                                builder.ImageUrl = RaindanceImages[r.Next(0, RaindanceImages.Count)];
+                                builder.Description = "Huzzah, " + tipTotal + " " + currencyName + " just rained on " + userCount +
+                                    " chatty turtle";
+                                if (UserPools[ChannelId].Count > 1) builder.Description += "s";
+                                builder.Description += " in #" + _client.GetChannel(ChannelId) + ", they ";
+                                if (UserPools[ChannelId].Count > 1) builder.Description += "each ";
+                                builder.Description += "got " + tipAmount + " " + currencyName + "!";
+                                builder.WithColor(Color.Green);
+
+                                // Send status message to all status channels
+                                foreach (ulong u in StatusChannel)
+                                    await (_client.GetChannel(u) as SocketTextChannel).SendMessageAsync("", false, builder);
+
+                                // Clear user pool
+                                if (flushPools) UserPools[ChannelId].Clear();
+                                Greylist.Clear();
+                                ShowDonation = true;
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error sending tip: " + e);
+                }
+
+                // Calculate wait time until next tip
+                if (waitMin < waitMax)
+                    waitTime = r.Next(waitMin, waitMax);
+                else waitTime = 10 * 60 * 1000;
+                waitNext = DateTime.Now.AddSeconds(waitTime).ToString("HH:mm:ss") + " " + _timezone;
+                Log("Tipper", "Next tip in {0} seconds({1})", waitTime, waitNext);
+
+                // Wait for X seconds
+                Waiting = 0;
+                while (Waiting < waitTime || Paused)
+                {
+                    await Task.Delay(1000);
+                    Waiting += 1;
+                }
+            }
+
+            // Restart tip loop
+            goto Start;
+        }
+
+        // Grab eligible channels
+        private static List<ulong> EligibleChannels()
+        {
+            List<ulong> Output = new List<ulong>();
+            foreach (KeyValuePair<ulong, List<ulong>> Entry in UserPools)
+            {
+                if (Entry.Value.Count >= userMin)
+                {
+                    Output.Add(Entry.Key);
+                }
+            }
+            return Output;
+        }
+
+        // Remove expired users from userpools
+        private static async void UserTimeout()
+        {
+            while (true)
+            {
+                try
+                {
+                    // Do not run loop while paused
+                    while (Paused) { }
+
+                    // Create a deletion buffer
+                    Dictionary<ulong, List<ulong>> Temp = new Dictionary<ulong, List<ulong>>();
+
+                    // Loop through pools and check for timeout
+                    foreach (KeyValuePair<ulong, List<ulong>> UserPool in UserPools)
+                    {
+                        // Iterate over users within pool
+                        List<ulong> Pool = new List<ulong>();
+                        for (int i = 0; i < UserPool.Value.Count; i++)
+                        {
+                            // Check if their last message was created beyond the timeout period
+                            if (DateTimeOffset.Now.ToUnixTimeSeconds() - UserMessages[UserPool.Value[i]].CreatedAt.ToUnixTimeSeconds() > timeoutPeriod)
+                            {
+                                if (logLevel >= 3)
+                                    Console.WriteLine("{0} {1}     Checking {2} against {3} on channel #{4}", DateTime.Now.ToString("HH:mm:ss"), "Timeout",
+                                        UserMessages[UserPool.Value[i]].CreatedAt.ToUnixTimeSeconds(), DateTimeOffset.Now.ToUnixTimeSeconds(), _client.GetChannel(UserPool.Key));
+
+                                // Remove user from channel's pool
+                                if (logLevel >= 1)
+                                    Console.WriteLine("{0} {1}     Removed {2} ({3}) from user pool on channel #{4}", DateTime.Now.ToString("HH:mm:ss"), "Timeout",
+                                        _client.GetUser(UserPool.Value[i]), UserPool.Value[i], _client.GetChannel(UserPool.Key));
+                                //await RemoveUserAsync(_client.GetUser(Pool[i]), UserPool.Key);
+                                Pool.Add(UserPool.Value[i]);
+                            }
+                        }
+                        Temp.Add(UserPool.Key, Pool);
+                    }
+
+                    // Iterate over all channel pools
+                    foreach (KeyValuePair<ulong, List<ulong>> UserPool in Temp)
+                        for (int i = 0; i < UserPool.Value.Count; i++)
+                            await RemoveUserAsync(_client.GetUser(UserPool.Value[i]), UserPool.Key);
+                }
+                catch { }
+
+                // Wait
+                await Task.Delay(1);
+            }
+        }
+
+        // Remove a user from all user pools
+        public static Task RemoveUserAsync(SocketUser User, ulong ChannelId)
+        {
+            // 0 = all channels
+            if (ChannelId == 0)
+                foreach (KeyValuePair<ulong, List<ulong>> Entry in UserPools)
+                {
+                    if (Entry.Value.Contains(User.Id))
+                        Entry.Value.Remove(User.Id);
+                }
+
+            // Specific channel pool
+            else if (UserPools.ContainsKey(ChannelId))
+            {
+                if (UserPools[ChannelId].Contains(User.Id))
+                    UserPools[ChannelId].Remove(User.Id);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        // On exit
+        public static bool ConsoleEventCallback(int eventType)
+        {
+            // Exiting
+            if (eventType == 2)
+            {
+                if (exitMessage != "") foreach (KeyValuePair<ulong, List<ulong>> Entry in UserPools)
+                    (_client.GetChannel(Entry.Key) as SocketTextChannel).SendMessageAsync(exitMessage).GetAwaiter().GetResult();
+                Config.Save().GetAwaiter().GetResult();
+            }
+            return false;
+        }
+
+        // Megatip
+        public static Task MegaTipAsync(decimal amount)
+        {
+            Log("RainBorg", "Megatip called");
+
+            // Get balance
+            tipBalance = GetBalance();
+
+            // Check that tip amount is within bounds
+            if (amount + (tipFee * UserPools.Keys.Count) > tipBalance && tipBalance >= 0)
+            {
+                Log("RainBorg", "Insufficient balance for megatip, need {0}", tipBalance + (tipFee * UserPools.Keys.Count));
+                // Insufficient balance
+                return Task.CompletedTask;
+            }
+
+            // Get total user amount
+            int TotalUsers = 0;
+            foreach (List<ulong> List in UserPools.Values)
+                foreach (ulong User in List)
+                    TotalUsers++;
+
+            // Set tip amount
+            tipAmount = amount / TotalUsers;
+            tipAmount = Math.Floor(tipAmount * 100) / 100;
+
+            // Loop through user pools and add them to tip
+            decimal tipTotal = 0;
+            DateTime tipTime = DateTime.Now;
+            foreach (ulong ChannelId in UserPools.Keys)
+            {
+                if (UserPools[ChannelId].Count > 0)
+                {
+                    string m = ".tip " + tipAmount.ToString("F") + " ";
+                    for (int i = 0; i < UserPools[ChannelId].Count; i++)
+                    {
+                        try
+                        {
+                            // Make sure the message size is below the max discord message size
+                            if ((m + _client.GetUser(UserPools[ChannelId][i]).Mention + " ").Length <= 2000)
+                            {
+                                // Add a username mention
+                                m += _client.GetUser(UserPools[ChannelId][i]).Mention + " ";
+
+                                // Add to tip total
+                                tipTotal += tipAmount;
+
+                                // Add tip to stats
+                                try
+                                {
+                                    Stats.Tip(tipTime, ChannelId, UserPools[ChannelId][i], tipAmount);
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine("Error adding tip to stat sheet: " + e.Message);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
+                    // Send tip message to channel
+                    (_client.GetChannel(ChannelId) as SocketTextChannel).SendMessageAsync(m);
+
+                    // Clear list
+                    if (flushPools) UserPools[ChannelId].Clear();
+                }
+            }
+
+            // Clear greylist
+            Greylist.Clear();
+            
+            // Begin building status message
+            var builder = new EmbedBuilder();
+            builder.WithTitle("TUT TUT");
+            builder.ImageUrl = RaindanceImages[new Random().Next(0, RaindanceImages.Count)];
+            builder.Description = "Wow, a megatip! " + tipTotal + " " + currencyName + " just rained on " + TotalUsers + " chatty turtle";
+            if (TotalUsers > 1) builder.Description += "s";
+            builder.Description += ", they ";
+            if (TotalUsers > 1) builder.Description += "each ";
+            builder.Description += "got " + tipAmount + " " + currencyName + "!";
+            builder.WithColor(Color.Green);
+
+            // Send status message to all status channels
+            foreach (ulong u in StatusChannel)
+                (_client.GetChannel(u) as SocketTextChannel).SendMessageAsync("", false, builder);
+
+            // Completed
+            return Task.CompletedTask;
+        }
+
+        // Log
+        public static void Log(string Source, string Message, params object[] Objects)
+        {
+            Console.WriteLine("{0} {1}\t{2}", DateTime.Now.ToString("HH:mm:ss"), Source, string.Format(Message, Objects));
+        }
+    }
+}
