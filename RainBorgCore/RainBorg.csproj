@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <StartupObject>RainBorg.RainBorg</StartupObject>
+    <ApplicationIcon>rainborg.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
