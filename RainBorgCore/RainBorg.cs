@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,8 +25,11 @@ namespace RainBorg
             Console.WriteLine(Banner);
 
             // Create exit handler
-            handler = new ConsoleEventDelegate(ConsoleEventCallback);
-            SetConsoleCtrlHandler(handler, true);
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                handler = new ConsoleEventDelegate(ConsoleEventCallback);
+                SetConsoleCtrlHandler(handler, true);
+            }
 
             // Run bot
             Start();
