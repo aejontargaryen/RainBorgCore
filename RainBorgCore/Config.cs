@@ -15,6 +15,7 @@ namespace RainBorg
                 // Load values
                 JObject Config = JObject.Parse(File.ReadAllText(RainBorg.configFile));
                 RainBorg.currencyName = (string)Config["currencyName"];
+                RainBorg.decimalPlaces = (int)Config["decimalPlaces"];
                 RainBorg.databaseFile = (string)Config["databaseFile"];
                 RainBorg.balanceUrl = (string)Config["balanceUrl"];
                 RainBorg.botAddress = (string)Config["botAddress"];
@@ -53,6 +54,7 @@ namespace RainBorg
             JObject Config = new JObject
             {
                 ["currencyName"] = RainBorg.currencyName,
+                ["decimalPlaces"] = RainBorg.decimalPlaces,
                 ["databaseFile"] = RainBorg.databaseFile,
                 ["balanceUrl"] = RainBorg.balanceUrl,
                 ["botAddress"] = RainBorg.botAddress,

@@ -279,7 +279,7 @@ namespace RainBorg
                             builder.ImageUrl = DonationImages[r.Next(0, DonationImages.Count)];
                             builder.WithTitle("UH OH");
                             builder.WithColor(Color.Green);
-                            builder.Description = String.Format(tipBalanceError, String.Format("{0:n}", tipMin + tipFee - tipBalance));
+                            builder.Description = String.Format(tipBalanceError, RainBorg.Format(tipMin + tipFee - tipBalance));
 
                             // Cast message to all status channels
                             foreach (ulong u in StatusChannel)
@@ -323,7 +323,7 @@ namespace RainBorg
                                 else tipAmount = (tipBalance - tipFee) / UserPools[ChannelId].Count;
 
                                 // Round tip amount down
-                                tipAmount = Math.Floor(tipAmount * 100) / 100;
+                                tipAmount = Floor(tipAmount);
 
                                 // Begin creating tip message
                                 int userCount = 0;
@@ -539,7 +539,7 @@ namespace RainBorg
 
             // Set tip amount
             tipAmount = amount / TotalUsers;
-            tipAmount = Math.Floor(tipAmount * 100) / 100;
+            tipAmount = Floor(tipAmount);
 
             // Loop through user pools and add them to tip
             decimal tipTotal = 0;

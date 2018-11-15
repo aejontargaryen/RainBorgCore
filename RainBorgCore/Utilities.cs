@@ -24,5 +24,26 @@ namespace RainBorg
                 return -1;
             }
         }
+
+        public static decimal Floor(decimal Input)
+        {
+            var r = Convert.ToDecimal(Math.Pow(10, decimalPlaces));
+            return Math.Floor(Input * r) / r;
+        }
+
+        public static string Format(decimal Input)
+        {
+            Input = Floor(Input);
+            string f = "{0:#,##0.#############}";
+            Console.WriteLine(string.Format(f, Input));
+            return string.Format(f, Input);
+        }
+        public static string Format(double Input)
+        {
+            decimal I = Floor((decimal)Input);
+            string f = "{0:#,##0.#############}";
+            Console.WriteLine(string.Format(f, I));
+            return string.Format(f, I);
+        }
     }
 }

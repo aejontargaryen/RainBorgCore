@@ -41,6 +41,8 @@ namespace RainBorg
             megaTipChance = 0.0;
 
         public static int
+            decimalPlaces = 2,
+
             userMin = 1,
             userMax = 20,
             logLevel = 1,

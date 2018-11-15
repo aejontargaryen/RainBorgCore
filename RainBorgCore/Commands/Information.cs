@@ -21,13 +21,13 @@ namespace RainBorg.Commands
                 decimal i = RainBorg.tipMin + RainBorg.tipFee - RainBorg.tipBalance;
                 if (i < 0) i = 0;
 
-                string m = "```Current tip balance: " + String.Format("{0:n}", RainBorg.tipBalance) + " " + RainBorg.currencyName + "\n" +
-                    "Amount needed for next tip: " + String.Format("{0:n}", i) + " " + RainBorg.currencyName + "\n" +
+                string m = "```Current tip balance: " + RainBorg.Format(RainBorg.tipBalance) + " " + RainBorg.currencyName + "\n" +
+                    "Amount needed for next tip: " + RainBorg.Format(i) + " " + RainBorg.currencyName + "\n" +
                     "Next tip at: " + RainBorg.waitNext + "\n" +
-                    "Tip minimum: " + String.Format("{0:n}", RainBorg.tipMin) + " " + RainBorg.currencyName + "\n" +
-                    "Tip maximum: " + String.Format("{0:n}", RainBorg.tipMax) + " " + RainBorg.currencyName + "\n" +
-                    "Megatip amount: " + String.Format("{0:n}", RainBorg.megaTipAmount) + " " + RainBorg.currencyName + "\n" +
-                    "Megatip chance: " + String.Format("{0:n}", RainBorg.megaTipChance) + "%\n" +
+                    "Tip minimum: " + RainBorg.Format(RainBorg.tipMin) + " " + RainBorg.currencyName + "\n" +
+                    "Tip maximum: " + RainBorg.Format(RainBorg.tipMax) + " " + RainBorg.currencyName + "\n" +
+                    "Megatip amount: " + RainBorg.Format(RainBorg.megaTipAmount) + " " + RainBorg.currencyName + "\n" +
+                    "Megatip chance: " + RainBorg.Format(RainBorg.megaTipChance) + "%\n" +
                     "Minimum users: " + RainBorg.userMin + "\n" +
                     "Maximum users: " + RainBorg.userMax + "\n" +
                     "Minimum wait time: " + String.Format("{0:n0}", RainBorg.waitMin) + "s (" + TimeSpan.FromSeconds(RainBorg.waitMin).ToString() + ")\n" +
@@ -197,18 +197,18 @@ namespace RainBorg.Commands
                 if ((Stat = Stats.GetChannelStats(Id)) != null)
                 {
                     m += "#" + Context.Client.GetChannel(Id) + " Channel Stats:\n";
-                    m += "Total " + RainBorg.currencyName + " Sent: " + String.Format("{0:n}", Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
+                    m += "Total " + RainBorg.currencyName + " Sent: " + RainBorg.Format(Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
                     m += "Total Tips Sent: " + Stat.TotalTips + "\n";
-                    m += "Average Tip: " + String.Format("{0:n}", Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
+                    m += "Average Tip: " + RainBorg.Format(Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
                 }
 
                 // User stats
                 else if ((Stat = Stats.GetUserStats(Id)) != null)
                 {
                     m += "@" + Context.Client.GetUser(Id).Username + " User Stats:\n";
-                    m += "Total " + RainBorg.currencyName + " Sent: " + String.Format("{0:n}", Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
+                    m += "Total " + RainBorg.currencyName + " Sent: " + RainBorg.Format(Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
                     m += "Total Tips Sent: " + Stat.TotalTips + "\n";
-                    m += "Average Tip: " + String.Format("{0:n}", Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
+                    m += "Average Tip: " + RainBorg.Format(Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
                 }
 
                 // Global stats
@@ -216,9 +216,9 @@ namespace RainBorg.Commands
                 {
                     Stat = Stats.GetGlobalStats();
                     m += "Global Stats:\n";
-                    m += "Total " + RainBorg.currencyName + " Sent: " + String.Format("{0:n}", Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
+                    m += "Total " + RainBorg.currencyName + " Sent: " + RainBorg.Format(Stat.TotalAmount) + " " + RainBorg.currencyName + "\n";
                     m += "Total Tips Sent: " + Stat.TotalTips + "\n";
-                    m += "Average Tip: " + String.Format("{0:n}", Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
+                    m += "Average Tip: " + RainBorg.Format(Stat.TotalAmount / Stat.TotalTips) + " " + RainBorg.currencyName + "";
                 }
 
                 m += "```";
