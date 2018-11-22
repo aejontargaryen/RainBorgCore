@@ -329,9 +329,9 @@ namespace RainBorg
                                 int userCount = 0;
                                 decimal tipTotal = 0;
                                 DateTime tipTime = DateTime.Now;
-                                Log("Tipper", "Sending tip of {0} to {1} users in channel #{2}", tipAmount.ToString("F"),
+                                Log("Tipper", "Sending tip of {0} to {1} users in channel #{2}", RainBorg.Format(tipAmount),
                                     UserPools[ChannelId].Count, _client.GetChannel(ChannelId));
-                                string m = ".tip " + tipAmount.ToString("F") + " ";
+                                string m = ".tip " + RainBorg.Format(tipAmount) + " ";
 
                                 // Loop through user pool and add them to tip
                                 for (int i = 0; i < UserPools[ChannelId].Count; i++)
@@ -477,7 +477,7 @@ namespace RainBorg
                 catch { }
 
                 // Wait
-                await Task.Delay(1);
+                await Task.Delay(1000);
             }
         }
 
@@ -548,7 +548,7 @@ namespace RainBorg
             {
                 if (UserPools[ChannelId].Count > 0)
                 {
-                    string m = ".tip " + tipAmount.ToString("F") + " ";
+                    string m = ".tip " + RainBorg.Format(tipAmount) + " ";
                     for (int i = 0; i < UserPools[ChannelId].Count; i++)
                     {
                         try
