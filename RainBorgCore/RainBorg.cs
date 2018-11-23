@@ -360,7 +360,7 @@ namespace RainBorg
                                 DateTime tipTime = DateTime.Now;
                                 Log("Tipper", "Sending tip of {0} to {1} users in channel #{2}", RainBorg.Format(tipAmount),
                                     UserPools[ChannelId].Count, _client.GetChannel(ChannelId));
-                                string m = ".tip " + RainBorg.Format(tipAmount) + " ";
+                                string m = $"{RainBorg.tipPrefix}tip " + RainBorg.Format(tipAmount) + " ";
 
                                 // Loop through user pool and add them to tip
                                 for (int i = 0; i < UserPools[ChannelId].Count; i++)
@@ -576,7 +576,7 @@ namespace RainBorg
             {
                 if (UserPools[ChannelId].Count > 0)
                 {
-                    string m = ".tip " + RainBorg.Format(tipAmount) + " ";
+                    string m = $"{RainBorg.tipPrefix}tip " + RainBorg.Format(tipAmount) + " ";
                     for (int i = 0; i < UserPools[ChannelId].Count; i++)
                     {
                         try

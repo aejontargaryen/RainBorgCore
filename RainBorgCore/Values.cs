@@ -24,6 +24,7 @@ namespace RainBorg
             currencyName = "TRTL",
             botToken = "",
             botPrefix = "$",
+            tipPrefix = ".",
             balanceUrl = "",
             configFile = "Config.conf",
             resumeFile = "Pools.json",

@@ -38,6 +38,8 @@ namespace RainBorg
                 RainBorg.logFile = (string)Config["logFile"];
                 RainBorg.botToken = (string)Config["botToken"];
                 RainBorg.botPrefix = (string)Config["botPrefix"];
+                RainBorg.tipPrefix = (string)Config["tipPrefix"];
+                RainBorg.spamWarning = (string)Config["spamWarning"];
                 RainBorg.ChannelWeight = Config["channelWeight"].ToObject<List<ulong>>();
                 RainBorg.StatusChannel = Config["statusChannel"].ToObject<List<ulong>>();
                 RainBorg.wordFilter = Config["wordFilter"].ToObject<List<string>>();
@@ -81,6 +83,8 @@ namespace RainBorg
                 ["logFile"] = RainBorg.logFile,
                 ["botToken"] = RainBorg.botToken,
                 ["botPrefix"] = RainBorg.botPrefix,
+                ["tipPrefix"] = RainBorg.tipPrefix,
+                ["spamWarning"] = RainBorg.spamWarning,
                 ["channelWeight"] = JToken.FromObject(RainBorg.ChannelWeight),
                 ["statusChannel"] = JToken.FromObject(RainBorg.StatusChannel),
                 ["wordFilter"] = JToken.FromObject(RainBorg.wordFilter),
