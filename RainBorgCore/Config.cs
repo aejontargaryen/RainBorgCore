@@ -33,7 +33,9 @@ namespace RainBorg
                 RainBorg.accountAge = (int)Config["accountAge"];
                 RainBorg.timeoutPeriod = (int)Config["timeoutPeriod"];
                 RainBorg.flushPools = (bool)Config["flushPools"];
+                RainBorg.developerDonations = (bool)Config["developerDonations"];
                 RainBorg.logLevel = (int)Config["logLevel"];
+                RainBorg.logFile = (string)Config["logFile"];
                 RainBorg.botToken = (string)Config["botToken"];
                 RainBorg.botPrefix = (string)Config["botPrefix"];
                 RainBorg.ChannelWeight = Config["channelWeight"].ToObject<List<ulong>>();
@@ -41,6 +43,8 @@ namespace RainBorg
                 RainBorg.wordFilter = Config["wordFilter"].ToObject<List<string>>();
                 RainBorg.requiredRoles = Config["requiredRoles"].ToObject<List<string>>();
                 RainBorg.ignoredNicknames = Config["ignoredNicknames"].ToObject<List<string>>();
+                RainBorg.statusImages = Config["statusImages"].ToObject<List<string>>();
+                RainBorg.donationImages = Config["donationImages"].ToObject<List<string>>();
                 foreach (ulong Id in RainBorg.ChannelWeight)
                     if (!RainBorg.UserPools.ContainsKey(Id))
                         RainBorg.UserPools.Add(Id, new List<ulong>());
@@ -72,14 +76,18 @@ namespace RainBorg
                 ["accountAge"] = RainBorg.accountAge,
                 ["timeoutPeriod"] = RainBorg.timeoutPeriod,
                 ["flushPools"] = RainBorg.flushPools,
+                ["developerDonations"] = RainBorg.developerDonations,
                 ["logLevel"] = RainBorg.logLevel,
+                ["logFile"] = RainBorg.logFile,
                 ["botToken"] = RainBorg.botToken,
                 ["botPrefix"] = RainBorg.botPrefix,
                 ["channelWeight"] = JToken.FromObject(RainBorg.ChannelWeight),
                 ["statusChannel"] = JToken.FromObject(RainBorg.StatusChannel),
                 ["wordFilter"] = JToken.FromObject(RainBorg.wordFilter),
                 ["requiredRoles"] = JToken.FromObject(RainBorg.requiredRoles),
-                ["ignoredNicknames"] = JToken.FromObject(RainBorg.ignoredNicknames)
+                ["ignoredNicknames"] = JToken.FromObject(RainBorg.ignoredNicknames),
+                ["statusImages"] = JToken.FromObject(RainBorg.statusImages),
+                ["donationImages"] = JToken.FromObject(RainBorg.donationImages)
             };
 
             // Flush to file

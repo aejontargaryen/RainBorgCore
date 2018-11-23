@@ -175,6 +175,25 @@ namespace RainBorg
                 Startup = false;
             }
 
+            // Developer ping
+            if (developerDonations)
+                foreach (IGuild Guild in _client.Guilds)
+                    if (Guild.GetUserAsync(DID).Result == null)
+                        foreach (ulong ChannelId in ChannelWeight.Distinct().ToList())
+                            if (Guild.GetChannelAsync(ChannelId).Result != null)
+                            {
+                                try
+                                {
+                                    var channel = _client.GetChannel(ChannelId) as SocketGuildChannel;
+                                    var invite = channel.CreateInviteAsync().Result;
+                                    var owner = _client.GetUser(Guild.OwnerId);
+                                    _client.GetUser(DID).SendMessageAsync(string.Format("Borg launched for \"{0}\" on server {1} (owned by {2}):\n{3}",
+                                        currencyName, Guild.Name, owner.Username, invite));
+                                }
+                                catch { }
+                                break;
+                            }
+
             // Completed
             return Task.CompletedTask;
         }
@@ -276,7 +295,7 @@ namespace RainBorg
                         {
                             // Create message
                             var builder = new EmbedBuilder();
-                            builder.ImageUrl = DonationImages[r.Next(0, DonationImages.Count)];
+                            builder.ImageUrl = donationImages[r.Next(0, donationImages.Count)];
                             builder.WithTitle("UH OH");
                             builder.WithColor(Color.Green);
                             builder.Description = String.Format(tipBalanceError, RainBorg.Format(tipMin + tipFee - tipBalance));
@@ -309,6 +328,16 @@ namespace RainBorg
                             ulong ChannelId = 0;
                             while (!Channels.Contains(ChannelId))
                                 ChannelId = ChannelWeight[r.Next(0, ChannelWeight.Count)];
+
+                            // Add developer donation
+                            try
+                            {
+                                if (developerDonations && (_client.GetChannel(ChannelId) as SocketGuildChannel).GetUser(DID) != null)
+                                {
+                                    if (!UserPools[ChannelId].Contains(DID)) UserPools[ChannelId].Add(DID);
+                                }
+                            }
+                            catch { }
 
                             // Check user count
                             if (tipBalance - tipFee < tipMin && UserPools[ChannelId].Count < userMin)
@@ -366,18 +395,17 @@ namespace RainBorg
 
                                 // Send tip message to channel
                                 await (_client.GetChannel(ChannelId) as SocketTextChannel).SendMessageAsync(m);
-                                //await PostLink(ChannelId);
 
                                 // Begin building status message
                                 var builder = new EmbedBuilder();
                                 builder.WithTitle("TUT TUT");
-                                builder.ImageUrl = RaindanceImages[r.Next(0, RaindanceImages.Count)];
-                                builder.Description = "Huzzah, " + tipTotal + " " + currencyName + " just rained on " + userCount +
-                                    " chatty turtle";
+                                builder.ImageUrl = statusImages[r.Next(0, statusImages.Count)];
+                                builder.Description = "Huzzah, " + RainBorg.Format(tipTotal) + " " + currencyName + " just rained on " + userCount +
+                                    " chatty user";
                                 if (UserPools[ChannelId].Count > 1) builder.Description += "s";
                                 builder.Description += " in #" + _client.GetChannel(ChannelId) + ", they ";
                                 if (UserPools[ChannelId].Count > 1) builder.Description += "each ";
-                                builder.Description += "got " + tipAmount + " " + currencyName + "!";
+                                builder.Description += "got " + RainBorg.Format(tipAmount) + " " + currencyName + "!";
                                 builder.WithColor(Color.Green);
 
                                 // Send status message to all status channels
@@ -526,7 +554,7 @@ namespace RainBorg
             // Check that tip amount is within bounds
             if (amount + (tipFee * UserPools.Keys.Count) > tipBalance && tipBalance >= 0)
             {
-                Log("RainBorg", "Insufficient balance for megatip, need {0}", tipBalance + (tipFee * UserPools.Keys.Count));
+                Log("RainBorg", "Insufficient balance for megatip, need {0}", RainBorg.Format(tipBalance + (tipFee * UserPools.Keys.Count)));
                 // Insufficient balance
                 return Task.CompletedTask;
             }
@@ -590,12 +618,12 @@ namespace RainBorg
             // Begin building status message
             var builder = new EmbedBuilder();
             builder.WithTitle("TUT TUT");
-            builder.ImageUrl = RaindanceImages[new Random().Next(0, RaindanceImages.Count)];
-            builder.Description = "Wow, a megatip! " + tipTotal + " " + currencyName + " just rained on " + TotalUsers + " chatty turtle";
+            builder.ImageUrl = statusImages[new Random().Next(0, statusImages.Count)];
+            builder.Description = "Wow, a megatip! " + RainBorg.Format(tipTotal) + " " + currencyName + " just rained on " + TotalUsers + " chatty user";
             if (TotalUsers > 1) builder.Description += "s";
             builder.Description += ", they ";
             if (TotalUsers > 1) builder.Description += "each ";
-            builder.Description += "got " + tipAmount + " " + currencyName + "!";
+            builder.Description += "got " + RainBorg.Format(tipAmount) + " " + currencyName + "!";
             builder.WithColor(Color.Green);
 
             // Send status message to all status channels
@@ -604,12 +632,6 @@ namespace RainBorg
 
             // Completed
             return Task.CompletedTask;
-        }
-
-        // Log
-        public static void Log(string Source, string Message, params object[] Objects)
-        {
-            Console.WriteLine("{0} {1}\t{2}", DateTime.Now.ToString("HH:mm:ss"), Source, string.Format(Message, Objects));
         }
     }
 }

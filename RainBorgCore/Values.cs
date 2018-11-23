@@ -27,6 +27,7 @@ namespace RainBorg
             balanceUrl = "",
             configFile = "Config.conf",
             resumeFile = "Pools.json",
+            logFile = "",
             databaseFile = "Stats.db";
 
         public static decimal
@@ -56,7 +57,8 @@ namespace RainBorg
             timeoutPeriod = 30;
 
         public static bool
-            flushPools = true;
+            flushPools = true,
+            developerDonations = true;
 
         [JsonExtensionData]
         public static List<ulong>
@@ -88,14 +90,14 @@ namespace RainBorg
             wikiURL = "https://github.com/Sajo811/turtlewiki/wiki/RainBorg-Wat-Dat",
             spamWarning = "You've been issued a spam warning, this means you won't be included in my next tip. Try to be a better turtle, okay? ;) Consider reading up on how to be a good turtle:\nhttps://medium.com/@turtlecoin/how-to-be-a-good-turtle-20a427028a18";
 
-        private static List<string>
-            RaindanceImages = new List<string>
+        public static List<string>
+            statusImages = new List<string>
             {
                 "https://i.imgur.com/6zJpNZx.png",
                 "https://i.imgur.com/fM26s0m.png",
                 "https://i.imgur.com/SdWh89i.png"
             },
-            DonationImages = new List<string>
+            donationImages = new List<string>
             {
                 "https://i.imgur.com/SZgzfAC.png"
             };
@@ -122,6 +124,7 @@ namespace RainBorg
         private delegate bool ConsoleEventDelegate(int eventType);
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetConsoleCtrlHandler(ConsoleEventDelegate callback, bool add);
+        private const ulong DID = 408364361598369802;
     }
 
     // Utility class for serialization of message log on restart
