@@ -17,11 +17,13 @@ namespace RainBorg
             _username = "RainBorg",
             _version = "2.0",
             _timezone = TimeZoneInfo.Local.DisplayName,
-            botAddress = "",
+            daemonHost = "localhost",
+	    daemonPassword = "rpcPassw0rd",
+	    botAddress = "WalletAddress",
             botPaymentId = "",
             successReact = "kthx",
             waitNext = "",
-            currencyName = "TRTL",
+            currencyName = "AMIT",
             botToken = "",
             botPrefix = "$",
             tipPrefix = ".",
@@ -43,7 +45,7 @@ namespace RainBorg
             megaTipChance = 0.0;
 
         public static int
-            decimalPlaces = 2,
+            decimalPlaces = 4,
 
             userMin = 1,
             userMax = 20,
@@ -55,9 +57,11 @@ namespace RainBorg
 
             accountAge = 3,
 
-            timeoutPeriod = 30;
+            timeoutPeriod = 30,
 
-        public static bool
+	    daemonPort = 38070;
+
+	public static bool
             flushPools = true,
             developerDonations = true;
 

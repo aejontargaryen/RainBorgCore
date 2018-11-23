@@ -17,8 +17,11 @@ namespace RainBorg
                 RainBorg.currencyName = (string)Config["currencyName"];
                 RainBorg.decimalPlaces = (int)Config["decimalPlaces"];
                 RainBorg.databaseFile = (string)Config["databaseFile"];
-                RainBorg.balanceUrl = (string)Config["balanceUrl"];
-                RainBorg.botAddress = (string)Config["botAddress"];
+                //RainBorg.balanceUrl = (string)Config["balanceUrl"];
+                RainBorg.daemonHost = (string)Config["daemonHost"];
+	        RainBorg.daemonPort = (int)Config["daemonPort"];
+	        RainBorg.daemonPassword  = (string)Config["daemonPassword"];
+		RainBorg.botAddress = (string)Config["botAddress"];
                 RainBorg.botPaymentId = (string)Config["botPaymentId"];
                 RainBorg.successReact = (string)Config["successReact"];
                 RainBorg.tipFee = (decimal)Config["tipFee"];
@@ -62,8 +65,11 @@ namespace RainBorg
                 ["currencyName"] = RainBorg.currencyName,
                 ["decimalPlaces"] = RainBorg.decimalPlaces,
                 ["databaseFile"] = RainBorg.databaseFile,
-                ["balanceUrl"] = RainBorg.balanceUrl,
-                ["botAddress"] = RainBorg.botAddress,
+                //["balanceUrl"] = RainBorg.balanceUrl,
+                ["daemonHost"] = RainBorg.daemonHost,
+	        ["daemonPort"] = RainBorg.daemonPort,
+		["daemonPassword"] = RainBorg.daemonPassword, 
+		["botAddress"] = RainBorg.botAddress,
                 ["botPaymentId"] = RainBorg.botPaymentId,
                 ["successReact"] = RainBorg.successReact,
                 ["tipFee"] = RainBorg.tipFee,

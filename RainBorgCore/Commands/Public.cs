@@ -20,7 +20,7 @@ namespace RainBorg.Commands
             decimal i = RainBorg.tipMin - RainBorg.tipBalance;
             if (i < 0) i = 0;
 
-            string m = "Current tip balance: " + RainBorg.Format(RainBorg.tipBalance) + RainBorg.currencyName;
+            string m = "Current tip balance: " + RainBorg.Format(RainBorg.tipBalance) + " " + RainBorg.currencyName;
             await ReplyAsync(m);
         }
 

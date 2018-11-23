@@ -9,7 +9,7 @@ namespace RainBorg
 {
     public partial class RainBorg
     {
-        internal static decimal GetBalance()
+        internal static decimal GetBalanceORG()
         {
             try
             {
@@ -25,6 +25,20 @@ namespace RainBorg
                 return -1;
             }
         }
+
+ 	// New Balance Method via Request	
+	internal static decimal GetBalance()
+        {
+        //  public static JObject RPC(string Host, int Port, string Method, JObject Params = null, string Password = null)
+
+        // Get Balance from Service
+	 JObject Result = Request.RPC(daemonHost, daemonPort, "getBalance", new JObject{["address"] = botAddress }, daemonPassword);
+	 if (Result.Count < 1 || Result.ContainsKey("error")) return -1;
+        // Return current supply dividet by CoinUnits
+                return (decimal)Result["availableBalance"] / 10000;
+        }
+
+
 
         public static decimal Floor(decimal Input)
         {
